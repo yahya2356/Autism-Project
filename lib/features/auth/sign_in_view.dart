@@ -115,13 +115,29 @@ class SignInView extends GetView<AuthController> {
     onTap: controller.signIn,
   ),
 ),
-              // SizedBox(height: 24.h),
-              // CText(
-              //   text: "Forgot the password?",
-              //   fontSize: 16,
-              //   color: AppColors.primary,
-              //   fontWeight: FontWeight.w600,
-              // ),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.grey300)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: CText(text: "OR", fontSize: 14, color: AppColors.grey500),
+                  ),
+                  Expanded(child: Divider(color: AppColors.grey300)),
+                ],
+              ),
+              SizedBox(height: 16.h),
+              CText(
+                text: "Parent Login with Google",
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey500,
+              ),
+              SizedBox(height: 12.h),
+              Obx(() => GoogleSignInButton(
+                isGLoading: controller.isGLoading.value,
+                onTap: controller.signInWithGoogle,
+              )),
               SizedBox(height: 20.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -152,3 +168,5 @@ class SignInView extends GetView<AuthController> {
     );
   }
 }
+
+

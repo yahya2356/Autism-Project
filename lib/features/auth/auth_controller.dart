@@ -25,6 +25,8 @@ class AuthController extends GetxController {
   final RxBool isPasswordVisible = false.obs;
   final RxBool isRememberMe = false.obs;
   final RxBool isLoading = false.obs;
+  final RxBool isGLoading = false.obs;
+
 
   @override
   void onInit() {
@@ -145,11 +147,59 @@ Future<void> signUp() async {
     ErrorHandler.showSuccessSnackBar("Account Created", "Welcome to bluecircle");
     Get.offAllNamed(Routes.DASHBOARD);
   } catch (e) {
-    ErrorHandler.showErrorSnackBar(e);
+    ErrorHandler.showErrorSnackBar(e.toString());
   } finally {
     isLoading.value = false;
   }
 }
+
+Future<void> signInWithGoogle() async {
+  try {
+    isGLoading.value = true;
+    dev.log("Google SignIn started", name: "AUTH_CONTROLLER");
+
+    final userCredential = await _authRepository.signInWithGoogle();
+    if (userCredential == null) {
+      isGLoading.value = false;
+      return;
+    }
+
+    final user = userCredential.user;
+    if (user != null) {
+      final existingUser = await _userRepository.getUser(user.uid);
+      if (existingUser == null) {
+        final newUser = UserModel(
+          id: user.uid,
+          name: user.displayName ?? "Parent",
+          email: user.email ?? "",
+          role: 'parent',
+          profileImage: user.photoURL,
+          profileImageUrl: user.photoURL,
+          createdAt: DateTime.now(),
+        );
+        await _userRepository.createUser(newUser);
+      }
+
+      await _roleAuthService.refreshUserData();
+      final role = _roleAuthService.currentRole.value;
+      
+      ErrorHandler.showSuccessSnackBar("Welcome", "Google Login successful");
+      
+      if (role == UserRole.child) {
+        Get.offAllNamed(Routes.CHILD_DASHBOARD);
+      } else {
+        Get.offAllNamed(Routes.DASHBOARD);
+      }
+    }
+  } catch (e) {
+    dev.log("Google SignIn Failed: $e", name: "AUTH_CONTROLLER", error: e);
+    ErrorHandler.showErrorSnackBar(e.toString());
+  } finally {
+    isGLoading.value = false;
+  }
+}
+
+
 
   Future<void> logout() async {
     dev.log('User Logging Out', name: 'AUTH_DEBUG');

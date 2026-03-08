@@ -77,6 +77,12 @@ service cloud.firestore {
       allow write: if false; // Only manageable via Admin SDK or Cloud Functions if automated
     }
 
+    // Module 5.5: Categories
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
     // Module 6: Community Groups
     match /groups/{groupId} {
       allow read: if true;

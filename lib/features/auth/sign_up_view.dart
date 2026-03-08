@@ -150,6 +150,24 @@ class SignUpView extends GetView<AuthController> {
     onTap: controller.signUp,
   ),
 ),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.grey300)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: CText(text: "OR", fontSize: 14, color: AppColors.grey500),
+                  ),
+                  Expanded(child: Divider(color: AppColors.grey300)),
+                ],
+              ),
+              SizedBox(height: 16.h),
+              // Obx(() => PrimaryButton(
+              //   text: "Continue with Google",
+              //   width: double.infinity,
+              //   isLoading: controller.isLoading.value,
+              //   onTap: controller.signInWithGoogle,
+              // )),
 
               SizedBox(height: 20.h),
               Row(

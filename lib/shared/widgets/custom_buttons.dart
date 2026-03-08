@@ -83,6 +83,68 @@ class PrimaryButton extends StatelessWidget {
 }
 
 
+class GoogleSignInButton extends StatelessWidget {
+  final bool isGLoading;
+  final Function() onTap;
+
+  const GoogleSignInButton({
+    super.key,
+    required this.isGLoading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isGLoading ? null : onTap,
+      child: Container(
+        width: double.infinity,
+        height: 52.h,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(color: AppColors.grey300, width: 1.5),
+        ),
+        child: isGLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppColors.kprimaryColor),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    height: 24.h,
+                    width: 24.w,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: Image.asset(
+                      'assets/app_images/google_icon.png',
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  CText(
+                    text: "Continue with Google",
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+
 class PrimaryIconButton extends StatelessWidget {
   final String text;
   final Function()? onTap;

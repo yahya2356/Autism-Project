@@ -162,17 +162,17 @@ class ChildrenManagementView extends GetView<ChildrenManagementController> {
                         color: AppColors.textPrimary,
                       ),
                       SizedBox(height: 4.h),
-                      Row(
-                        children: [
-                          Icon(Icons.cake_outlined, size: 14.sp, color: AppColors.primary),
-                          SizedBox(width: 4.w),
-                          CText(
-                            text: "${child.age} Years Old",
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                        ],
-                      ),
+                      // Row(
+                      //   children: [
+                      //     Icon(Icons.cake_outlined, size: 14.sp, color: AppColors.primary),
+                      //     SizedBox(width: 4.w),
+                      //     CText(
+                      //       text: "${child.age} Years Old",
+                      //       fontSize: 14,
+                      //       color: AppColors.textSecondary,
+                      //     ),
+                      //   ],
+                      // ),
                       if (child.notes != null && child.notes!.isNotEmpty) ...[
                         SizedBox(height: 8.h),
                         CText(

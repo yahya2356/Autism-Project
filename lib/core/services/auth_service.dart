@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService extends GetxService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -69,5 +70,33 @@ class AuthService extends GetxService {
   Future<void> deleteAccount() async {
     dev.log("Deleting Account", name: "AUTH_SERVICE");
     await _auth.currentUser?.delete();
+  }
+
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      dev.log("Google SignIn Attempt", name: "AUTH_SERVICE");
+      
+      final googleSignIn = GoogleSignIn();
+      final googleUser = await googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        dev.log("Google SignIn Cancelled", name: "AUTH_SERVICE");
+        return null;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final result = await _auth.signInWithCredential(credential);
+      dev.log("Google SignIn Success: ${result.user?.uid}", name: "AUTH_SERVICE");
+      
+      return result;
+    } catch (e) {
+      dev.log("Google SignIn Error", error: e, name: "AUTH_SERVICE");
+      rethrow;
+    }
   }
 }

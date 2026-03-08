@@ -22,6 +22,10 @@ class AuthRepository {
     await _authService.signOut();
   }
 
+  Future<UserCredential?> signInWithGoogle() async {
+    return await _authService.signInWithGoogle();
+  }
+
   Future<void> sendPasswordResetEmail(String email) async {
     await _authService.sendPasswordResetEmail(email);
   }
