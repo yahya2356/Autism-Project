@@ -122,7 +122,7 @@ class SignInView extends GetView<AuthController> {
                   Expanded(child: Divider(color: AppColors.grey300)),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    child: CText(text: "OR LOGIN WITH PHONE", fontSize: 12, color: AppColors.grey500),
+                    child: CText(text: "Parent Login with PHONE", fontSize: 12, color: AppColors.grey500),
                   ),
                   Expanded(child: Divider(color: AppColors.grey300)),
                 ],
