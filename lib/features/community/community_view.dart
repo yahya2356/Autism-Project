@@ -153,6 +153,14 @@ class CommunityView extends GetView<CommunityController> {
 
     return InkWell(
       onTap: () async {
+        if (!controller.canAccessGroup(group)) {
+          Get.snackbar(
+            'Private Group',
+            'You need to join and be approved before opening this private group.',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          return;
+        }
         await controller.openGroup(group);
         Get.to(() => const GroupDetailView());
       },

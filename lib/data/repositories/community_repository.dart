@@ -161,7 +161,7 @@ class CommunityRepository {
     return _firestore
         .collection('groupPosts')
         .where('groupId', isEqualTo: groupId)
-        .orderBy('timestamp', descending: true)
+        .orderBy('timestamp', descending: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => GroupPostModel.fromMap(doc.data(), doc.id))

@@ -162,6 +162,12 @@ class CommunityController extends GetxController {
     return null;
   }
 
+
+  bool canAccessGroup(GroupModel group) {
+    if (!group.isPrivate) return true;
+    return managedGroupIds.contains(group.groupId);
+  }
+
   void selectCategory(CategoryModel? category) {
     selectedCategory.value = category;
   }
@@ -329,6 +335,7 @@ class CommunityController extends GetxController {
           timestamp: DateTime.now(),
         ),
       );
+      await openGroup(group);
       groupPostController.clear();
       ErrorHandler.showSuccessSnackBar('Posted', 'Your message was published to the group.');
     } catch (e) {

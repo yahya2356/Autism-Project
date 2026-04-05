@@ -6,6 +6,7 @@ import '../../core/constants/app_constants.dart';
 import '../../shared/widgets/c_text.dart';
 import '../../data/models/post_model.dart';
 import 'community_controller.dart';
+import '../../routes/app_pages.dart';
 
 class FilteredPostsView extends GetView<CommunityController> {
   const FilteredPostsView({super.key});
@@ -63,6 +64,15 @@ class FilteredPostsView extends GetView<CommunityController> {
             }),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Get.toNamed(Routes.POST_CREATION);
+        },
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text("Create Post"),
       ),
     );
   }
