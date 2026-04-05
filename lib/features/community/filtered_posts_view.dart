@@ -67,8 +67,6 @@ class FilteredPostsView extends GetView<CommunityController> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Pre-select category is handled via having selecting one before reaching here.
-          // But when creating post, it allows picking.
           Get.toNamed(Routes.POST_CREATION);
         },
         backgroundColor: AppColors.primary,

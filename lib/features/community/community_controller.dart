@@ -1,26 +1,57 @@
 import 'dart:developer' as dev;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../data/repositories/community_repository.dart';
-import '../../data/repositories/category_repository.dart';
-import '../../data/repositories/auth_repository.dart';
-import '../../data/models/group_model.dart';
-import '../../data/models/post_model.dart';
-import '../../data/models/category_model.dart';
+
 import '../../core/utils/error_handler.dart';
+import '../../data/models/category_model.dart';
+import '../../data/models/group_join_request_model.dart';
+import '../../data/models/group_model.dart';
+import '../../data/models/group_post_model.dart';
+import '../../data/models/post_model.dart';
+import '../../data/models/user_model.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/category_repository.dart';
+import '../../data/repositories/community_repository.dart';
+import '../../data/repositories/user_repository.dart';
 
 class CommunityController extends GetxController {
   final CommunityRepository _communityRepository = Get.find<CommunityRepository>();
   final CategoryRepository _categoryRepository = Get.find<CategoryRepository>();
   final AuthRepository _authRepository = Get.find<AuthRepository>();
+  final UserRepository _userRepository = Get.find<UserRepository>();
 
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController groupNameController = TextEditingController();
+  final TextEditingController groupDescriptionController = TextEditingController();
+  final TextEditingController groupConditionController = TextEditingController();
+  final TextEditingController groupInstructionController = TextEditingController();
+  final TextEditingController joinRequestNoteController = TextEditingController();
+
   final RxList<GroupModel> groups = <GroupModel>[].obs;
   final RxList<PostModel> allPosts = <PostModel>[].obs;
   final RxList<PostModel> filteredPosts = <PostModel>[].obs;
   final RxList<CategoryModel> categories = <CategoryModel>[].obs;
   final Rx<CategoryModel?> selectedCategory = Rx<CategoryModel?>(null);
+  final RxList<GroupModel> visibleGroups = <GroupModel>[].obs;
+  final RxList<GroupModel> myGroups = <GroupModel>[].obs;
+  final RxList<GroupJoinRequestModel> myJoinRequests = <GroupJoinRequestModel>[].obs;
+  final RxList<String> managedGroupIds = <String>[].obs;
+  final Rxn<GroupModel> selectedGroup = Rxn<GroupModel>();
+  final RxList<GroupPostModel> selectedGroupPosts = <GroupPostModel>[].obs;
+  final RxBool isInSelectedGroup = false.obs;
+  final TextEditingController groupPostController = TextEditingController();
+  final Rxn<UserModel> currentUserProfile = Rxn<UserModel>();
+
+  final RxString groupLocationCode = 'GLOBAL'.obs;
+  final RxString groupCategory = 'General'.obs;
+  final RxInt? minChildAge = RxInt(0);
+  final RxInt? maxChildAge = RxInt(18);
+  final RxBool createGroupPrivate = false.obs;
+  final RxBool createGroupNeedsApproval = true.obs;
   final RxBool isLoading = false.obs;
+  final RxList<String> draftConditions = <String>[].obs;
+  final RxList<String> draftInstructions = <String>[].obs;
 
   @override
   void onInit() {
@@ -29,15 +60,30 @@ class CommunityController extends GetxController {
     groups.bindStream(_communityRepository.getGroups());
     allPosts.bindStream(_communityRepository.getPosts());
     categories.bindStream(_categoryRepository.getCategories());
-    
+
     ever(allPosts, (_) => _filterPosts());
     ever(selectedCategory, (_) => _filterPosts());
-    
+    everAll([groups, managedGroupIds], (_) => _filterGroups());
+
     searchController.addListener(_onSearchChanged);
+    _initCurrentUserContext();
+  }
+
+  Future<void> _initCurrentUserContext() async {
+    final userId = _authRepository.currentUser?.uid;
+    if (userId == null) return;
+
+    currentUserProfile.value = await _userRepository.getUser(userId);
+    myJoinRequests.bindStream(_communityRepository.getUserJoinRequests(userId));
+    _communityRepository.getUserGroupIds(userId).listen((ids) {
+      managedGroupIds.assignAll(ids);
+      _filterGroups();
+    });
   }
 
   void _onSearchChanged() {
     _filterPosts();
+    _filterGroups();
   }
 
   void _filterPosts() {
@@ -56,6 +102,70 @@ class CommunityController extends GetxController {
     }
 
     filteredPosts.value = posts;
+  }
+
+  void _filterGroups() {
+    final query = searchController.text.toLowerCase();
+    final source = groups.toList();
+
+    final filtered = source.where((group) {
+      if (query.isEmpty) return true;
+      return group.groupName.toLowerCase().contains(query) ||
+          group.description.toLowerCase().contains(query) ||
+          group.locationCode.toLowerCase().contains(query) ||
+          group.allowedConditions.any((c) => c.toLowerCase().contains(query));
+    }).toList();
+
+    visibleGroups.assignAll(filtered);
+    myGroups.assignAll(filtered.where((g) => managedGroupIds.contains(g.groupId)));
+  }
+
+  bool _passesLocation(GroupModel group, UserModel user) {
+    if (group.locationCode == 'GLOBAL') return true;
+    final userLocation = (user.locationCode ?? 'GLOBAL').toUpperCase();
+    return userLocation == group.locationCode;
+  }
+
+  bool _passesAge(GroupModel group, UserModel user) {
+    if (user.childDob == null) return true;
+    final now = DateTime.now();
+    final age = now.year - user.childDob!.year -
+        ((now.month < user.childDob!.month ||
+                (now.month == user.childDob!.month && now.day < user.childDob!.day))
+            ? 1
+            : 0);
+
+    if (group.minChildAge != null && age < group.minChildAge!) return false;
+    if (group.maxChildAge != null && age > group.maxChildAge!) return false;
+    return true;
+  }
+
+  bool _passesCondition(GroupModel group, UserModel user) {
+    if (group.allowedConditions.isEmpty) return true;
+    final diagnosis = (user.diagnosis ?? '').trim().toLowerCase();
+    if (diagnosis.isEmpty) return false;
+    return group.allowedConditions.map((e) => e.toLowerCase()).contains(diagnosis);
+  }
+
+  String? getEligibilityIssue(GroupModel group) {
+    final user = currentUserProfile.value;
+    if (user == null) return 'Please complete your profile first.';
+    if (!_passesLocation(group, user)) {
+      return 'This group is restricted to ${group.locationCode} families.';
+    }
+    if (!_passesAge(group, user)) {
+      return 'Your child age does not match this group criteria.';
+    }
+    if (!_passesCondition(group, user)) {
+      return 'Your child diagnosis does not match this group criteria.';
+    }
+    return null;
+  }
+
+
+  bool canAccessGroup(GroupModel group) {
+    if (!group.isPrivate) return true;
+    return managedGroupIds.contains(group.groupId);
   }
 
   void selectCategory(CategoryModel? category) {
@@ -82,24 +192,209 @@ class CommunityController extends GetxController {
     }
   }
 
+  Future<void> submitJoinAction(GroupModel group) async {
+    final userId = _authRepository.currentUser?.uid;
+    if (userId == null) return;
+
+    final issue = getEligibilityIssue(group);
+    if (issue != null) {
+      ErrorHandler.showErrorSnackBar(issue);
+      return;
+    }
+
+    final isMember = await _communityRepository.isUserMember(group.groupId, userId);
+    if (isMember) {
+      ErrorHandler.showSuccessSnackBar('Already joined', 'You are already a member of this group.');
+      return;
+    }
+
+    try {
+      final mustRequest = group.isPrivate || group.requiresApproval;
+      if (mustRequest) {
+        await _communityRepository.upsertJoinRequest(
+          groupId: group.groupId,
+          userId: userId,
+          note: joinRequestNoteController.text.trim(),
+          status: 'pending',
+        );
+        ErrorHandler.showSuccessSnackBar('Request sent', 'Admins will review your request shortly.');
+      } else {
+        await _communityRepository.joinGroup(group.groupId, userId);
+        ErrorHandler.showSuccessSnackBar('Joined', 'You are now a member of ${group.groupName}.');
+      }
+      if (selectedGroup.value?.groupId == group.groupId && !mustRequest) {
+        isInSelectedGroup.value = true;
+      }
+      joinRequestNoteController.clear();
+    } catch (e) {
+      dev.log('Error joining group: $e', name: 'COMMUNITY_DEBUG');
+      ErrorHandler.showErrorSnackBar(e);
+    }
+  }
+
+  Future<void> createGroup() async {
+    final userId = _authRepository.currentUser?.uid;
+    if (userId == null) return;
+
+    final name = groupNameController.text.trim();
+    final description = groupDescriptionController.text.trim();
+
+    if (name.isEmpty || description.isEmpty) {
+      ErrorHandler.showErrorSnackBar('Please add group name and description.');
+      return;
+    }
+
+    if ((minChildAge?.value ?? 0) > (maxChildAge?.value ?? 18)) {
+      ErrorHandler.showErrorSnackBar('Minimum age cannot be greater than maximum age.');
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      await _communityRepository.createGroup(
+        GroupModel(
+          groupId: '',
+          groupName: name,
+          description: description,
+          category: groupCategory.value,
+          createdAt: DateTime.now(),
+          createdBy: userId,
+          isPrivate: createGroupPrivate.value,
+          requiresApproval: createGroupNeedsApproval.value,
+          locationCode: groupLocationCode.value.toUpperCase(),
+          minChildAge: minChildAge?.value,
+          maxChildAge: maxChildAge?.value,
+          allowedConditions: draftConditions.toList(),
+          instructions: draftInstructions.toList(),
+        ),
+      );
+
+      groupNameController.clear();
+      groupDescriptionController.clear();
+      groupConditionController.clear();
+      groupInstructionController.clear();
+      draftConditions.clear();
+      draftInstructions.clear();
+      createGroupPrivate.value = false;
+      createGroupNeedsApproval.value = true;
+      groupLocationCode.value = 'GLOBAL';
+      minChildAge?.value = 0;
+      maxChildAge?.value = 18;
+      ErrorHandler.showSuccessSnackBar('Group created', 'Your community group is live.');
+    } catch (e) {
+      ErrorHandler.showErrorSnackBar(e);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void addDraftCondition() {
+    final value = groupConditionController.text.trim();
+    if (value.isEmpty) return;
+    draftConditions.add(value);
+    groupConditionController.clear();
+  }
+
+  void addDraftInstruction() {
+    final value = groupInstructionController.text.trim();
+    if (value.isEmpty) return;
+    draftInstructions.add(value);
+    groupInstructionController.clear();
+  }
+
+
+  Future<void> openGroup(GroupModel group) async {
+    selectedGroup.value = group;
+    selectedGroupPosts.bindStream(_communityRepository.getGroupPosts(group.groupId));
+
+    final userId = _authRepository.currentUser?.uid;
+    if (userId != null) {
+      isInSelectedGroup.value = await _communityRepository.isUserMember(group.groupId, userId);
+    }
+  }
+
+  Future<void> createSelectedGroupPost() async {
+    final group = selectedGroup.value;
+    final userId = _authRepository.currentUser?.uid;
+    if (group == null || userId == null) return;
+
+    if (!isInSelectedGroup.value) {
+      ErrorHandler.showErrorSnackBar('Join this group first to create posts.');
+      return;
+    }
+
+    final content = groupPostController.text.trim();
+    if (content.isEmpty) {
+      ErrorHandler.showErrorSnackBar('Write something before posting.');
+      return;
+    }
+
+    try {
+      await _communityRepository.createGroupPost(
+        group.groupId,
+        GroupPostModel(
+          postId: '',
+          groupId: group.groupId,
+          userId: userId,
+          content: content,
+          timestamp: DateTime.now(),
+        ),
+      );
+      await openGroup(group);
+      groupPostController.clear();
+      ErrorHandler.showSuccessSnackBar('Posted', 'Your message was published to the group.');
+    } catch (e) {
+      ErrorHandler.showErrorSnackBar(e);
+    }
+  }
+
   Future<void> refreshPosts() async {
     await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+
+  GroupModel? findGroupById(String groupId) {
+    try {
+      return groups.firstWhere((g) => g.groupId == groupId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Color statusColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  String statusLabel(String status) {
+    if (status.isEmpty) return 'Pending';
+    return status[0].toUpperCase() + status.substring(1);
+  }
+
+  void removeDraftCondition(String value) {
+    draftConditions.remove(value);
+  }
+
+  void removeDraftInstruction(String value) {
+    draftInstructions.remove(value);
   }
 
   @override
   void onClose() {
     dev.log('CommunityController Closed', name: 'COMMUNITY_DEBUG');
     searchController.dispose();
+    groupNameController.dispose();
+    groupDescriptionController.dispose();
+    groupConditionController.dispose();
+    groupInstructionController.dispose();
+    joinRequestNoteController.dispose();
+    groupPostController.dispose();
     super.onClose();
-  }
-
-  Future<void> joinGroup(String groupId, String userId) async {
-    try {
-      await _communityRepository.joinGroup(groupId, userId);
-      ErrorHandler.showSuccessSnackBar('Success', 'Joined group successfully!');
-    } catch (e) {
-      dev.log('Error joining group: $e', name: 'COMMUNITY_DEBUG');
-      ErrorHandler.showErrorSnackBar(e);
-    }
   }
 }
