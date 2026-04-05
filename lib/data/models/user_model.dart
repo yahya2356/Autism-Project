@@ -49,6 +49,7 @@ class UserModel {
   final DateTime createdAt;
   final DateTime? deletedAt;
   final String? password;
+  final String? locationCode;
   
   // For child users - reference to parent
   final String? parentId;
@@ -61,6 +62,7 @@ class UserModel {
     this.emergencyContact,
     this.profileImage,
     this.password,
+    this.locationCode,
     this.childName,
     this.childDob,
     this.diagnosis,
@@ -98,6 +100,7 @@ class UserModel {
       preferredTextSize: map['preferredTextSize'],
       primaryChallenge: map['primaryChallenge'],
       password: map['password'],
+      locationCode: map['locationCode'],
       safeZones: map['safeZones'] != null ? List<String>.from(map['safeZones']) : null,
       childSafetySettings: map['childSafetySettings'],
       favorites: map['favorites'] != null ? List<String>.from(map['favorites']) : null,
@@ -129,6 +132,7 @@ class UserModel {
       'safeZones': safeZones,
       'favorites': favorites,
       'childSafetySettings': childSafetySettings,
+      'locationCode': locationCode,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'deletedAt': deletedAt?.millisecondsSinceEpoch,
       'parentId': parentId,
@@ -158,6 +162,7 @@ class UserModel {
     DateTime? createdAt,
     DateTime? deletedAt,
     String? password,
+    String? locationCode,
     String? parentId,
   }) {
     return UserModel(
@@ -183,6 +188,7 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       deletedAt: deletedAt ?? this.deletedAt,
       password: password ?? this.password,
+      locationCode: locationCode ?? this.locationCode,
       parentId: parentId ?? this.parentId,
     );
   }
