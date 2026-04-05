@@ -32,7 +32,7 @@ class AuthController extends GetxController {
   final RxBool isPhoneSignInLoading = false.obs;
   final RxBool isOtpSending = false.obs;
   final RxBool isOtpVerifying = false.obs;
-  final RxString selectedCountryDialCode = '+92'.obs;
+  final RxString selectedCountryDialCode = '+971'.obs;
 
 
   @override
