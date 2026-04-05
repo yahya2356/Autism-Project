@@ -144,8 +144,8 @@ class SignInView extends GetView<AuthController> {
                   child: CountryCodePicker(
                     onChanged: (countryCode) =>
                         controller.setCountryDialCode(countryCode.dialCode),
-                    initialSelection: 'UAE',
-                    favorite: const ['UAE', 'IN', 'AE', 'SA', 'GB', 'US', 'CA'],
+                    initialSelection: 'AE',
+                    favorite: const ['AE', 'IN', 'AE', 'SA', 'GB', 'US', 'CA'],
                     showCountryOnly: false,
                     showOnlyCountryWhenClosed: false,
                     hideMainText: true,
