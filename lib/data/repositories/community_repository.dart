@@ -79,7 +79,12 @@ class CommunityRepository {
     required String groupId,
     required String userId,
     String note = '',
-  }) {
+  }) async {
+    final alreadyMember = await isUserMember(groupId, userId);
+    if (alreadyMember) {
+      throw Exception('User is already a member of this group.');
+    }
+
     return upsertJoinRequest(
       groupId: groupId,
       userId: userId,
@@ -150,6 +155,10 @@ class CommunityRepository {
     required String reviewerId,
     required String status,
   }) async {
+    if (status != 'approved' && status != 'rejected') {
+      throw Exception('Invalid review status.');
+    }
+
     final requestRef = _firestore.collection('groupJoinRequests').doc(requestId);
     final requestSnapshot = await requestRef.get();
     if (!requestSnapshot.exists) return;
@@ -244,6 +253,14 @@ class CommunityRepository {
   }
 
   Future<void> createGroupPost(String groupId, GroupPostModel post) async {
+    final membership = await _firestore
+        .collection('groupMembers')
+        .doc('${groupId}_${post.userId}')
+        .get();
+    if (!membership.exists) {
+      throw Exception('Only group members can create posts.');
+    }
+
     final payload = post.toMap();
     payload['groupId'] = groupId;
     await _firestore.collection('groupPosts').add(payload);

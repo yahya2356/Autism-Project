@@ -126,7 +126,6 @@ class CommunityController extends GetxController {
   }
 
   bool _passesLocation(GroupModel group, UserModel user) {
-    if (group.locationCode == 'GLOBAL') return true;
     final userLocation = (user.locationCode ?? 'GLOBAL').toUpperCase();
     if (group.allowedCountry?.trim().isNotEmpty == true) {
       final country = group.allowedCountry!.trim().toUpperCase();
@@ -136,7 +135,9 @@ class CommunityController extends GetxController {
       final city = group.allowedCity!.trim().toUpperCase();
       if (city != 'GLOBAL' && userLocation != city) return false;
     }
-    return userLocation == group.locationCode || group.locationCode == 'GLOBAL';
+
+    if (group.locationCode.toUpperCase() == 'GLOBAL') return true;
+    return userLocation == group.locationCode.toUpperCase();
   }
 
   bool _passesAge(GroupModel group, UserModel user) {
@@ -188,7 +189,7 @@ class CommunityController extends GetxController {
 
   bool canAccessGroup(GroupModel group) {
     if (!group.isPrivate) return true;
-    return managedGroupIds.contains(group.groupId);
+    return managedGroupIds.contains(group.groupId) || isGroupOwner(group);
   }
 
   void selectCategory(CategoryModel? category) {
