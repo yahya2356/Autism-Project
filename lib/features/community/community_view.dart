@@ -133,26 +133,17 @@ class CommunityView extends GetView<CommunityController> {
     return Obx(() {
       final hasOwnerRequests = controller.ownerPendingRequests.isNotEmpty;
       final hasMyRequests = controller.myJoinRequests.isNotEmpty;
-      if (!hasOwnerRequests && !hasMyRequests) {
-        return Center(
-          child: CText(
-            text: 'No join requests yet.',
-            fontSize: 14,
-            color: AppColors.textSecondary,
-          ),
-        );
-      }
 
       return ListView(
         padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 90.h),
         children: [
+          CText(
+            text: 'Requests to your groups',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+          SizedBox(height: 8.h),
           if (hasOwnerRequests) ...[
-            CText(
-              text: 'Requests to your groups',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-            SizedBox(height: 8.h),
             ...controller.ownerPendingRequests.map((request) {
               final group = controller.findGroupById(request.groupId);
               return Container(
@@ -199,15 +190,20 @@ class CommunityView extends GetView<CommunityController> {
                 ),
               );
             }),
-            SizedBox(height: 12.h),
-          ],
-          if (hasMyRequests) ...[
+          ] else
             CText(
-              text: 'Your join requests',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+              text: 'No incoming requests for your groups yet.',
+              fontSize: 12,
+              color: AppColors.textSecondary,
             ),
-            SizedBox(height: 8.h),
+          SizedBox(height: 12.h),
+          CText(
+            text: 'Your join requests',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+          SizedBox(height: 8.h),
+          if (hasMyRequests) ...[
             ...controller.myJoinRequests.map((request) {
               final group = controller.findGroupById(request.groupId);
               final color = controller.statusColor(request.status);
@@ -256,15 +252,10 @@ class CommunityView extends GetView<CommunityController> {
                 ),
               );
             }),
-          ] else
+          ],
+          if (!hasMyRequests)
             CText(
               text: 'You have not submitted join requests yet.',
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
-          if (hasOwnerRequests)
-            CText(
-              text: 'Tip: You can also manage requests inside each group detail page.',
               fontSize: 12,
               color: AppColors.textSecondary,
             ),

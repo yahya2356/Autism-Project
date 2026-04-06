@@ -138,11 +138,11 @@ class CommunityRepository {
         .collection('groupJoinRequests')
         .where('groupId', isEqualTo: groupId)
         .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => GroupJoinRequestModel.fromMap(doc.data(), doc.id))
-            .toList());
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
   }
 
   Future<void> reviewJoinRequest({
@@ -196,7 +196,6 @@ class CommunityRepository {
             .collection('groupJoinRequests')
             .where('groupId', isEqualTo: groupId)
             .where('status', isEqualTo: 'pending')
-            .orderBy('createdAt', descending: true)
             .get();
         requests.addAll(snapshot.docs.map((doc) => GroupJoinRequestModel.fromMap(doc.data(), doc.id)));
       }
