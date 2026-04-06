@@ -68,16 +68,32 @@ class GroupDetailView extends GetView<CommunityController> {
             Expanded(
               child: Obx(() {
                 if (!controller.isInSelectedGroup.value) {
+                  final request = controller.joinRequestForGroup(group.groupId);
+                  final hasPendingRequest = request?.status == 'pending';
                   return Center(
-                    child: ElevatedButton(
-                      onPressed: () => controller.submitJoinAction(group),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                      child: Text(
-                        group.isPrivate ? 'Request to Join Group' : 'Join Group',
-                        style: const TextStyle(color: Colors.white),
+                    child: hasPendingRequest
+                        ? Container(
+                            margin: EdgeInsets.symmetric(horizontal: 16.w),
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12.r),
+                              color: Colors.orange.withValues(alpha: 0.12),
+                            ),
+                            child: CText(
+                              text: 'Your join request is pending approval.',
+                              fontSize: 12,
+                              color: Colors.orange.shade900,
+                            ),
+                          )
+                        : ElevatedButton(
+                            onPressed: () => controller.submitJoinAction(group),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                            child: Text(
+                              group.isPrivate ? 'Request to Join Group' : 'Join Group',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
                       ),
-                    ),
-                  );
                 }
 
                 if (controller.selectedGroupPosts.isEmpty) {
@@ -161,8 +177,10 @@ class GroupDetailView extends GetView<CommunityController> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                  await controller.createSelectedGroupPost();
-                  Get.back();
+                  final posted = await controller.createSelectedGroupPost();
+                  if (posted) {
+                    Get.back();
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

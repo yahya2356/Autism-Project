@@ -154,7 +154,9 @@ class CommunityRepository {
   }
 
   Future<void> createGroupPost(String groupId, GroupPostModel post) async {
-    await _firestore.collection('groupPosts').add(post.toMap());
+    final payload = post.toMap();
+    payload['groupId'] = groupId;
+    await _firestore.collection('groupPosts').add(payload);
   }
 
   Stream<List<GroupPostModel>> getGroupPosts(String groupId) {

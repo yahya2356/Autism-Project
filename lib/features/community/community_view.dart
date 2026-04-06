@@ -221,6 +221,9 @@ class CommunityView extends GetView<CommunityController> {
   Widget _groupCard(dynamic group) {
     final instructions = group.instructions as List<String>;
     final issue = controller.getEligibilityIssue(group);
+    final isMember = controller.isMemberOfGroup(group.groupId);
+    final request = controller.joinRequestForGroup(group.groupId);
+    final hasPendingRequest = request?.status == 'pending';
 
     return InkWell(
       onTap: () async {
@@ -287,22 +290,57 @@ class CommunityView extends GetView<CommunityController> {
             else
               CText(text: 'Eligible to join', fontSize: 12, color: Colors.green.shade700),
             SizedBox(height: 10.h),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => controller.submitJoinAction(group),
-                    icon: Icon(group.isPrivate ? Icons.lock_open : Icons.group_add),
-                    label: Text(group.isPrivate ? 'Request to Join' : 'Join Group'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                    ),
+            if (isMember)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 10.h),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12.r),
+                  color: Colors.green.withValues(alpha: 0.12),
+                ),
+                child: Center(
+                  child: CText(
+                    text: 'You are already a member',
+                    fontSize: 12,
+                    color: Colors.green.shade700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
+              )
+            else if (hasPendingRequest)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 10.h),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12.r),
+                  color: Colors.orange.withValues(alpha: 0.12),
+                ),
+                child: Center(
+                  child: CText(
+                    text: 'Join request pending',
+                    fontSize: 12,
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => controller.submitJoinAction(group),
+                      icon: Icon(group.isPrivate ? Icons.lock_open : Icons.group_add),
+                      label: Text(group.isPrivate ? 'Request to Join' : 'Join Group'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -485,8 +523,10 @@ class CommunityView extends GetView<CommunityController> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await controller.createGroup();
-                    Get.back();
+                    final created = await controller.createGroup();
+                    if (created) {
+                      Get.back();
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,

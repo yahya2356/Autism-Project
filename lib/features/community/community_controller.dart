@@ -232,21 +232,21 @@ class CommunityController extends GetxController {
     }
   }
 
-  Future<void> createGroup() async {
+  Future<bool> createGroup() async {
     final userId = _authRepository.currentUser?.uid;
-    if (userId == null) return;
+    if (userId == null) return false;
 
     final name = groupNameController.text.trim();
     final description = groupDescriptionController.text.trim();
 
     if (name.isEmpty || description.isEmpty) {
       ErrorHandler.showErrorSnackBar('Please add group name and description.');
-      return;
+      return false;
     }
 
     if ((minChildAge?.value ?? 0) > (maxChildAge?.value ?? 18)) {
       ErrorHandler.showErrorSnackBar('Minimum age cannot be greater than maximum age.');
-      return;
+      return false;
     }
 
     isLoading.value = true;
@@ -281,8 +281,10 @@ class CommunityController extends GetxController {
       minChildAge?.value = 0;
       maxChildAge?.value = 18;
       ErrorHandler.showSuccessSnackBar('Group created', 'Your community group is live.');
+      return true;
     } catch (e) {
       ErrorHandler.showErrorSnackBar(e);
+      return false;
     } finally {
       isLoading.value = false;
     }
@@ -305,6 +307,7 @@ class CommunityController extends GetxController {
 
   Future<void> openGroup(GroupModel group) async {
     selectedGroup.value = group;
+    selectedGroupPosts.clear();
     selectedGroupPosts.bindStream(_communityRepository.getGroupPosts(group.groupId));
 
     final userId = _authRepository.currentUser?.uid;
@@ -313,20 +316,20 @@ class CommunityController extends GetxController {
     }
   }
 
-  Future<void> createSelectedGroupPost() async {
+  Future<bool> createSelectedGroupPost() async {
     final group = selectedGroup.value;
     final userId = _authRepository.currentUser?.uid;
-    if (group == null || userId == null) return;
+    if (group == null || userId == null) return false;
 
     if (!isInSelectedGroup.value) {
       ErrorHandler.showErrorSnackBar('Join this group first to create posts.');
-      return;
+      return false;
     }
 
     final content = groupPostController.text.trim();
     if (content.isEmpty) {
       ErrorHandler.showErrorSnackBar('Write something before posting.');
-      return;
+      return false;
     }
 
     try {
@@ -343,9 +346,19 @@ class CommunityController extends GetxController {
       await openGroup(group);
       groupPostController.clear();
       ErrorHandler.showSuccessSnackBar('Posted', 'Your message was published to the group.');
+      return true;
     } catch (e) {
       ErrorHandler.showErrorSnackBar(e);
+      return false;
     }
+  }
+
+  bool isMemberOfGroup(String groupId) => managedGroupIds.contains(groupId);
+
+  GroupJoinRequestModel? joinRequestForGroup(String groupId) {
+    final matches = myJoinRequests.where((request) => request.groupId == groupId);
+    if (matches.isEmpty) return null;
+    return matches.first;
   }
 
   Future<void> refreshPosts() async {
