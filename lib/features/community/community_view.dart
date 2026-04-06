@@ -131,7 +131,9 @@ class CommunityView extends GetView<CommunityController> {
 
   Widget _buildRequestsPanel() {
     return Obx(() {
-      if (controller.myJoinRequests.isEmpty) {
+      final hasOwnerRequests = controller.ownerPendingRequests.isNotEmpty;
+      final hasMyRequests = controller.myJoinRequests.isNotEmpty;
+      if (!hasOwnerRequests && !hasMyRequests) {
         return Center(
           child: CText(
             text: 'No join requests yet.',
@@ -141,59 +143,138 @@ class CommunityView extends GetView<CommunityController> {
         );
       }
 
-      return ListView.builder(
+      return ListView(
         padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 90.h),
-        itemCount: controller.myJoinRequests.length,
-        itemBuilder: (context, index) {
-          final request = controller.myJoinRequests[index];
-          final group = controller.findGroupById(request.groupId);
-          final color = controller.statusColor(request.status);
-
-          return Container(
-            margin: EdgeInsets.only(bottom: 12.h),
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(color: AppColors.grey200),
+        children: [
+          if (hasOwnerRequests) ...[
+            CText(
+              text: 'Requests to your groups',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CText(
-                        text: group?.groupName ?? 'Community group',
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      SizedBox(height: 4.h),
-                      CText(
-                        text: request.note?.isNotEmpty == true
-                            ? request.note!
-                            : 'No note was attached to your request.',
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
+            SizedBox(height: 8.h),
+            ...controller.ownerPendingRequests.map((request) {
+              final group = controller.findGroupById(request.groupId);
+              return Container(
+                margin: EdgeInsets.only(bottom: 10.h),
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: AppColors.grey200),
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: CText(
-                    text: controller.statusLabel(request.status),
-                    fontSize: 11,
-                    color: color,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CText(
+                      text: group?.groupName ?? 'Your group',
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    SizedBox(height: 4.h),
+                    CText(
+                      text: request.note?.isNotEmpty == true ? request.note! : 'No note provided.',
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => controller.reviewJoinRequest(
+                            request: request,
+                            status: 'approved',
+                          ),
+                          child: const Text('Approve'),
+                        ),
+                        TextButton(
+                          onPressed: () => controller.reviewJoinRequest(
+                            request: request,
+                            status: 'rejected',
+                          ),
+                          child: const Text('Reject'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              );
+            }),
+            SizedBox(height: 12.h),
+          ],
+          if (hasMyRequests) ...[
+            CText(
+              text: 'Your join requests',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
-          );
-        },
+            SizedBox(height: 8.h),
+            ...controller.myJoinRequests.map((request) {
+              final group = controller.findGroupById(request.groupId);
+              final color = controller.statusColor(request.status);
+              return Container(
+                margin: EdgeInsets.only(bottom: 12.h),
+                padding: EdgeInsets.all(14.w),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: AppColors.grey200),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CText(
+                            text: group?.groupName ?? 'Community group',
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          SizedBox(height: 4.h),
+                          CText(
+                            text: request.note?.isNotEmpty == true
+                                ? request.note!
+                                : 'No note was attached to your request.',
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: CText(
+                        text: controller.statusLabel(request.status),
+                        fontSize: 11,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ] else
+            CText(
+              text: 'You have not submitted join requests yet.',
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          if (hasOwnerRequests)
+            CText(
+              text: 'Tip: You can also manage requests inside each group detail page.',
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          SizedBox(height: 12.h),
+          CText(
+            text: 'As group owner, approve requests here to add members to your groups.',
+            fontSize: 12,
+            color: AppColors.primary,
+          ),
+        ],
       );
     });
   }

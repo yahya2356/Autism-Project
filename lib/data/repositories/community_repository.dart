@@ -178,12 +178,16 @@ class CommunityRepository {
   }
 
   Stream<List<GroupJoinRequestModel>> getPendingJoinRequestsForOwner(String ownerId) {
-    return _firestore
-        .collection('groups')
-        .where('ownerId', isEqualTo: ownerId)
-        .snapshots()
-        .asyncMap((groupsSnapshot) async {
-      final groupIds = groupsSnapshot.docs.map((doc) => doc.id).toList();
+    return _firestore.collection('groups').snapshots().asyncMap((groupsSnapshot) async {
+      final groupIds = groupsSnapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            final resolvedOwnerId = (data['ownerId'] ?? data['createdBy'] ?? '').toString();
+            return resolvedOwnerId == ownerId;
+          })
+          .map((doc) => doc.id)
+          .toList();
+
       if (groupIds.isEmpty) return <GroupJoinRequestModel>[];
 
       final List<GroupJoinRequestModel> requests = [];
@@ -194,9 +198,7 @@ class CommunityRepository {
             .where('status', isEqualTo: 'pending')
             .orderBy('createdAt', descending: true)
             .get();
-        requests.addAll(
-          snapshot.docs.map((doc) => GroupJoinRequestModel.fromMap(doc.data(), doc.id)),
-        );
+        requests.addAll(snapshot.docs.map((doc) => GroupJoinRequestModel.fromMap(doc.data(), doc.id)));
       }
 
       requests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
