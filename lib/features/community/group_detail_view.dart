@@ -42,7 +42,8 @@ class GroupDetailView extends GetView<CommunityController> {
                 ],
               ),
             ),
-            Obx(() => !controller.isInSelectedGroup.value
+            _buildOwnerRequestsPanel(group.groupId, controller.isGroupOwner(group)),
+            Obx(() => (group.isPrivate && !controller.isInSelectedGroup.value)
                 ? Container(
                     margin: EdgeInsets.symmetric(horizontal: 16.w),
                     padding: EdgeInsets.all(12.w),
@@ -65,18 +66,65 @@ class GroupDetailView extends GetView<CommunityController> {
                     ),
                   )
                 : const SizedBox.shrink()),
+            Obx(() {
+              if (!controller.isInSelectedGroup.value) return const SizedBox.shrink();
+              return Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: controller.isSummarizing.value ? null : controller.summarizeGroup,
+                    icon: controller.isSummarizing.value
+                        ? SizedBox(
+                            width: 16.w,
+                            height: 16.w,
+                            child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.auto_awesome),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    label: Text(
+                      controller.isSummarizing.value
+                          ? 'Generating summary...'
+                          : 'Summarize Group with AI',
+                    ),
+                  ),
+                ),
+              );
+            }),
             Expanded(
               child: Obx(() {
-                if (!controller.isInSelectedGroup.value) {
+                final canViewPosts =
+                    !group.isPrivate || controller.isInSelectedGroup.value || controller.isGroupOwner(group);
+
+                if (!canViewPosts) {
+                  final request = controller.joinRequestForGroup(group.groupId);
+                  final hasPendingRequest = request?.status == 'pending';
                   return Center(
-                    child: ElevatedButton(
-                      onPressed: () => controller.submitJoinAction(group),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                      child: Text(
-                        group.isPrivate ? 'Request to Join Group' : 'Join Group',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
+                    child: hasPendingRequest
+                        ? Container(
+                            margin: EdgeInsets.symmetric(horizontal: 16.w),
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12.r),
+                              color: Colors.orange.withValues(alpha: 0.12),
+                            ),
+                            child: CText(
+                              text: 'Your join request is pending approval.',
+                              fontSize: 12,
+                              color: Colors.orange.shade900,
+                            ),
+                          )
+                        : ElevatedButton(
+                            onPressed: () => controller.submitJoinAction(group),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                            child: Text(
+                              group.isPrivate ? 'Request to Join Group' : 'Join Group',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
                   );
                 }
 
@@ -161,8 +209,10 @@ class GroupDetailView extends GetView<CommunityController> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                  await controller.createSelectedGroupPost();
-                  Get.back();
+                  final posted = await controller.createSelectedGroupPost();
+                  if (posted) {
+                    Get.back();
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -176,5 +226,79 @@ class GroupDetailView extends GetView<CommunityController> {
       ),
       isScrollControlled: true,
     );
+  }
+
+  Widget _buildOwnerRequestsPanel(String groupId, bool isOwner) {
+    if (!isOwner) return const SizedBox.shrink();
+
+    return Obx(() {
+      final pendingRequests = controller.pendingRequestsForGroup(groupId);
+      if (pendingRequests.isEmpty) return const SizedBox.shrink();
+
+      return Container(
+        margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CText(
+              text: 'Pending join requests',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+            SizedBox(height: 8.h),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: 220.h),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: pendingRequests.length,
+                separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                itemBuilder: (context, index) {
+                  final request = pendingRequests[index];
+                  return Container(
+                    padding: EdgeInsets.all(10.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10.r),
+                      border: Border.all(color: AppColors.grey200),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CText(
+                            text: request.note?.isNotEmpty == true ? request.note! : request.userId,
+                            fontSize: 12,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => controller.reviewJoinRequest(
+                            request: request,
+                            status: 'approved',
+                          ),
+                          child: const Text('Approve'),
+                        ),
+                        TextButton(
+                          onPressed: () => controller.reviewJoinRequest(
+                            request: request,
+                            status: 'rejected',
+                          ),
+                          child: const Text('Reject'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
