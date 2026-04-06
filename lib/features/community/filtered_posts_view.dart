@@ -21,6 +21,35 @@ class FilteredPostsView extends GetView<CommunityController> {
       ),
       body: Column(
         children: [
+          Obx(
+            () => Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: controller.isSummarizingCategory.value
+                      ? null
+                      : controller.summarizeCategoryPosts,
+                  icon: controller.isSummarizingCategory.value
+                      ? SizedBox(
+                          width: 16.w,
+                          height: 16.w,
+                          child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.auto_awesome),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  label: Text(
+                    controller.isSummarizingCategory.value
+                        ? 'Generating summary...'
+                        : 'Summarize with AI',
+                  ),
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: Obx(() {
               final posts = controller.filteredPosts;

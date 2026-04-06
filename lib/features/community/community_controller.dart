@@ -44,6 +44,7 @@ class CommunityController extends GetxController {
   final RxList<GroupPostModel> selectedGroupPosts = <GroupPostModel>[].obs;
   final RxBool isInSelectedGroup = false.obs;
   final RxBool isSummarizing = false.obs;
+  final RxBool isSummarizingCategory = false.obs;
   final TextEditingController groupPostController = TextEditingController();
   final TextEditingController groupCountryController = TextEditingController();
   final TextEditingController groupCityController = TextEditingController();
@@ -474,6 +475,46 @@ class CommunityController extends GetxController {
       ErrorHandler.showErrorSnackBar(e);
     } finally {
       isSummarizing.value = false;
+    }
+  }
+
+  Future<void> summarizeCategoryPosts() async {
+    try {
+      isSummarizingCategory.value = true;
+      final posts = filteredPosts
+          .take(50)
+          .map((post) => '${post.title}\n${post.description}'.trim())
+          .where((entry) => entry.isNotEmpty)
+          .toList();
+
+      if (posts.isEmpty) {
+        ErrorHandler.showErrorSnackBar('There are no posts to summarize in this category.');
+        return;
+      }
+
+      final combinedText = posts.join('\n\n');
+      final summary = await _aiService.summarizeGroupPosts(combinedText);
+      if (summary.trim().isEmpty) {
+        ErrorHandler.showErrorSnackBar('Summary came back empty. Please try again.');
+        return;
+      }
+
+      Get.dialog(
+        AlertDialog(
+          title: const Text('Category Summary'),
+          content: SingleChildScrollView(child: Text(summary)),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ErrorHandler.showErrorSnackBar(e);
+    } finally {
+      isSummarizingCategory.value = false;
     }
   }
 
