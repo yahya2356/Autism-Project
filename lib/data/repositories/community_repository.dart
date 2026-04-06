@@ -364,15 +364,33 @@ class CommunityRepository {
   }
 
   Future<List<GroupPostModel>> getRecentGroupPosts(String groupId) async {
-    final snapshot = await _firestore
-        .collection('groupPosts')
-        .where('groupId', isEqualTo: groupId)
-        .orderBy('timestamp', descending: true)
-        .limit(50)
-        .get();
+    try {
+      final snapshot = await _firestore
+          .collection('groupPosts')
+          .where('groupId', isEqualTo: groupId)
+          .orderBy('timestamp', descending: true)
+          .limit(50)
+          .get();
 
-    return snapshot.docs
-        .map((doc) => GroupPostModel.fromMap(doc.data(), doc.id))
-        .toList();
+      return snapshot.docs
+          .map((doc) => GroupPostModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } on FirebaseException catch (e) {
+      // Fallback for environments missing the composite index.
+      if (e.code != 'failed-precondition') rethrow;
+
+      final snapshot = await _firestore
+          .collection('groupPosts')
+          .where('groupId', isEqualTo: groupId)
+          .limit(200)
+          .get();
+
+      final posts = snapshot.docs
+          .map((doc) => GroupPostModel.fromMap(doc.data(), doc.id))
+          .toList()
+        ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      return posts.length > 50 ? posts.sublist(0, 50) : posts;
+    }
   }
 }
