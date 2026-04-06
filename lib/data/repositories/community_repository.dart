@@ -80,6 +80,15 @@ class CommunityRepository {
         'role': 'owner',
         'joinedAt': FieldValue.serverTimestamp(),
       });
+      batch.set(_firestore.collection('groupPosts').doc(), {
+        'groupId': doc.id,
+        'userId': ownerId,
+        'content': 'Welcome to ${seed['groupName']}! Share your experience and support others.',
+        'timestamp': FieldValue.serverTimestamp(),
+        'imageUrl': null,
+        'likeCount': 0,
+        'commentCount': 0,
+      });
     }
     await batch.commit();
   }

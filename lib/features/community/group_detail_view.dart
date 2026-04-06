@@ -43,7 +43,7 @@ class GroupDetailView extends GetView<CommunityController> {
               ),
             ),
             _buildOwnerRequestsPanel(group.groupId, controller.isGroupOwner(group)),
-            Obx(() => !controller.isInSelectedGroup.value
+            Obx(() => (group.isPrivate && !controller.isInSelectedGroup.value)
                 ? Container(
                     margin: EdgeInsets.symmetric(horizontal: 16.w),
                     padding: EdgeInsets.all(12.w),
@@ -68,7 +68,10 @@ class GroupDetailView extends GetView<CommunityController> {
                 : const SizedBox.shrink()),
             Expanded(
               child: Obx(() {
-                if (!controller.isInSelectedGroup.value) {
+                final canViewPosts =
+                    !group.isPrivate || controller.isInSelectedGroup.value || controller.isGroupOwner(group);
+
+                if (!canViewPosts) {
                   final request = controller.joinRequestForGroup(group.groupId);
                   final hasPendingRequest = request?.status == 'pending';
                   return Center(
