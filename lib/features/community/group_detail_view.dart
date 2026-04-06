@@ -42,6 +42,71 @@ class GroupDetailView extends GetView<CommunityController> {
                 ],
               ),
             ),
+            Obx(() {
+              final isOwner = controller.isGroupOwner(group);
+              if (!isOwner) return const SizedBox.shrink();
+              final pendingRequests = controller.pendingRequestsForGroup(group.groupId);
+              if (pendingRequests.isEmpty) return const SizedBox.shrink();
+
+              return Container(
+                margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CText(
+                      text: 'Pending join requests',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(height: 8.h),
+                    ...pendingRequests.map(
+                      (request) => Container(
+                        margin: EdgeInsets.only(bottom: 8.h),
+                        padding: EdgeInsets.all(10.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10.r),
+                          border: Border.all(color: AppColors.grey200),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: CText(
+                                text: request.note?.isNotEmpty == true
+                                    ? request.note!
+                                    : request.userId,
+                                fontSize: 12,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => controller.reviewJoinRequest(
+                                request: request,
+                                status: 'approved',
+                              ),
+                              child: const Text('Approve'),
+                            ),
+                            TextButton(
+                              onPressed: () => controller.reviewJoinRequest(
+                                request: request,
+                                status: 'rejected',
+                              ),
+                              child: const Text('Reject'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
             Obx(() => !controller.isInSelectedGroup.value
                 ? Container(
                     margin: EdgeInsets.symmetric(horizontal: 16.w),

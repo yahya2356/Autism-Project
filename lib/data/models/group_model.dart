@@ -7,14 +7,18 @@ class GroupModel {
   final int totalMembers;
   final String category;
   final DateTime createdAt;
-  final String createdBy;
+  final String ownerId;
   final bool isPrivate;
   final bool requiresApproval;
   final String locationCode;
+  final String? allowedCountry;
+  final String? allowedCity;
+  final String? allowedLanguage;
   final int? minChildAge;
   final int? maxChildAge;
   final List<String> allowedConditions;
   final List<String> instructions;
+  final List<String> joinInstructions;
 
   const GroupModel({
     required this.groupId,
@@ -23,14 +27,18 @@ class GroupModel {
     this.totalMembers = 0,
     required this.category,
     required this.createdAt,
-    required this.createdBy,
+    required this.ownerId,
     required this.isPrivate,
     required this.requiresApproval,
     required this.locationCode,
+    this.allowedCountry,
+    this.allowedCity,
+    this.allowedLanguage,
     required this.minChildAge,
     required this.maxChildAge,
     required this.allowedConditions,
     required this.instructions,
+    this.joinInstructions = const [],
   });
 
   String get visibilityLabel => isPrivate ? 'Private' : 'Public';
@@ -43,14 +51,18 @@ class GroupModel {
       totalMembers: map['totalMembers'] ?? 0,
       category: map['category'] ?? 'General',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      createdBy: map['createdBy'] ?? '',
+      ownerId: (map['ownerId'] ?? map['createdBy'] ?? '').toString(),
       isPrivate: map['isPrivate'] ?? false,
       requiresApproval: map['requiresApproval'] ?? false,
       locationCode: (map['locationCode'] ?? 'GLOBAL').toString().toUpperCase(),
+      allowedCountry: (map['allowedCountry'] as String?)?.trim(),
+      allowedCity: (map['allowedCity'] as String?)?.trim(),
+      allowedLanguage: (map['allowedLanguage'] as String?)?.trim(),
       minChildAge: map['minChildAge'],
       maxChildAge: map['maxChildAge'],
       allowedConditions: List<String>.from(map['allowedConditions'] ?? []),
       instructions: List<String>.from(map['instructions'] ?? []),
+      joinInstructions: List<String>.from(map['joinInstructions'] ?? []),
     );
   }
 
@@ -61,14 +73,19 @@ class GroupModel {
       'totalMembers': totalMembers,
       'category': category,
       'createdAt': Timestamp.fromDate(createdAt),
-      'createdBy': createdBy,
+      'ownerId': ownerId,
+      'createdBy': ownerId,
       'isPrivate': isPrivate,
       'requiresApproval': requiresApproval,
       'locationCode': locationCode,
+      'allowedCountry': allowedCountry,
+      'allowedCity': allowedCity,
+      'allowedLanguage': allowedLanguage,
       'minChildAge': minChildAge,
       'maxChildAge': maxChildAge,
       'allowedConditions': allowedConditions,
       'instructions': instructions,
+      'joinInstructions': joinInstructions,
     };
   }
 }

@@ -36,11 +36,15 @@ class CommunityController extends GetxController {
   final RxList<GroupModel> visibleGroups = <GroupModel>[].obs;
   final RxList<GroupModel> myGroups = <GroupModel>[].obs;
   final RxList<GroupJoinRequestModel> myJoinRequests = <GroupJoinRequestModel>[].obs;
+  final RxList<GroupJoinRequestModel> ownerPendingRequests = <GroupJoinRequestModel>[].obs;
   final RxList<String> managedGroupIds = <String>[].obs;
   final Rxn<GroupModel> selectedGroup = Rxn<GroupModel>();
   final RxList<GroupPostModel> selectedGroupPosts = <GroupPostModel>[].obs;
   final RxBool isInSelectedGroup = false.obs;
   final TextEditingController groupPostController = TextEditingController();
+  final TextEditingController groupCountryController = TextEditingController();
+  final TextEditingController groupCityController = TextEditingController();
+  final TextEditingController groupLanguageController = TextEditingController();
   final Rxn<UserModel> currentUserProfile = Rxn<UserModel>();
 
   final RxString groupLocationCode = 'GLOBAL'.obs;
@@ -75,6 +79,7 @@ class CommunityController extends GetxController {
 
     currentUserProfile.value = await _userRepository.getUser(userId);
     myJoinRequests.bindStream(_communityRepository.getUserJoinRequests(userId));
+    ownerPendingRequests.bindStream(_communityRepository.getPendingJoinRequestsForOwner(userId));
     _communityRepository.getUserGroupIds(userId).listen((ids) {
       managedGroupIds.assignAll(ids);
       _filterGroups();
@@ -123,7 +128,15 @@ class CommunityController extends GetxController {
   bool _passesLocation(GroupModel group, UserModel user) {
     if (group.locationCode == 'GLOBAL') return true;
     final userLocation = (user.locationCode ?? 'GLOBAL').toUpperCase();
-    return userLocation == group.locationCode;
+    if (group.allowedCountry?.trim().isNotEmpty == true) {
+      final country = group.allowedCountry!.trim().toUpperCase();
+      if (country != 'GLOBAL' && userLocation != country) return false;
+    }
+    if (group.allowedCity?.trim().isNotEmpty == true) {
+      final city = group.allowedCity!.trim().toUpperCase();
+      if (city != 'GLOBAL' && userLocation != city) return false;
+    }
+    return userLocation == group.locationCode || group.locationCode == 'GLOBAL';
   }
 
   bool _passesAge(GroupModel group, UserModel user) {
@@ -151,13 +164,23 @@ class CommunityController extends GetxController {
     final user = currentUserProfile.value;
     if (user == null) return 'Please complete your profile first.';
     if (!_passesLocation(group, user)) {
-      return 'This group is restricted to ${group.locationCode} families.';
+      final locationLabel = group.allowedCity?.isNotEmpty == true
+          ? '${group.allowedCity}, ${group.allowedCountry ?? group.locationCode}'
+          : (group.allowedCountry ?? group.locationCode);
+      return 'This group is restricted to $locationLabel families.';
     }
     if (!_passesAge(group, user)) {
       return 'Your child age does not match this group criteria.';
     }
     if (!_passesCondition(group, user)) {
       return 'Your child diagnosis does not match this group criteria.';
+    }
+    if ((group.allowedLanguage ?? '').trim().isNotEmpty) {
+      final userLanguage = (user.preferredTextSize ?? '').trim().toLowerCase();
+      final allowedLanguage = group.allowedLanguage!.trim().toLowerCase();
+      if (userLanguage.isNotEmpty && userLanguage != allowedLanguage) {
+        return 'This group requires language preference: ${group.allowedLanguage}.';
+      }
     }
     return null;
   }
@@ -196,9 +219,12 @@ class CommunityController extends GetxController {
     final userId = _authRepository.currentUser?.uid;
     if (userId == null) return;
 
-    final issue = getEligibilityIssue(group);
-    if (issue != null) {
-      ErrorHandler.showErrorSnackBar(issue);
+    final isEligible = await _communityRepository.canJoinGroup(
+      group,
+      currentUserProfile.value,
+    );
+    if (!isEligible) {
+      ErrorHandler.showErrorSnackBar('You do not meet the requirements for this group.');
       return;
     }
 
@@ -211,13 +237,15 @@ class CommunityController extends GetxController {
     try {
       final mustRequest = group.isPrivate || group.requiresApproval;
       if (mustRequest) {
-        await _communityRepository.upsertJoinRequest(
+        await _communityRepository.requestJoinGroup(
           groupId: group.groupId,
           userId: userId,
           note: joinRequestNoteController.text.trim(),
-          status: 'pending',
         );
-        ErrorHandler.showSuccessSnackBar('Request sent', 'Admins will review your request shortly.');
+        ErrorHandler.showSuccessSnackBar(
+          'Request sent',
+          'The group owner will review your request shortly.',
+        );
       } else {
         await _communityRepository.joinGroup(group.groupId, userId);
         ErrorHandler.showSuccessSnackBar('Joined', 'You are now a member of ${group.groupName}.');
@@ -228,6 +256,29 @@ class CommunityController extends GetxController {
       joinRequestNoteController.clear();
     } catch (e) {
       dev.log('Error joining group: $e', name: 'COMMUNITY_DEBUG');
+      ErrorHandler.showErrorSnackBar(e);
+    }
+  }
+
+  Future<void> reviewJoinRequest({
+    required GroupJoinRequestModel request,
+    required String status,
+  }) async {
+    final reviewerId = _authRepository.currentUser?.uid;
+    if (reviewerId == null) return;
+    try {
+      await _communityRepository.reviewJoinRequest(
+        requestId: request.id,
+        reviewerId: reviewerId,
+        status: status,
+      );
+      ErrorHandler.showSuccessSnackBar(
+        status == 'approved' ? 'Request approved' : 'Request rejected',
+        status == 'approved'
+            ? 'The member has been added to the group.'
+            : 'The join request has been rejected.',
+      );
+    } catch (e) {
       ErrorHandler.showErrorSnackBar(e);
     }
   }
@@ -258,14 +309,24 @@ class CommunityController extends GetxController {
           description: description,
           category: groupCategory.value,
           createdAt: DateTime.now(),
-          createdBy: userId,
+          ownerId: userId,
           isPrivate: createGroupPrivate.value,
           requiresApproval: createGroupNeedsApproval.value,
           locationCode: groupLocationCode.value.toUpperCase(),
+          allowedCountry: groupCountryController.text.trim().isEmpty
+              ? null
+              : groupCountryController.text.trim().toUpperCase(),
+          allowedCity: groupCityController.text.trim().isEmpty
+              ? null
+              : groupCityController.text.trim().toUpperCase(),
+          allowedLanguage: groupLanguageController.text.trim().isEmpty
+              ? null
+              : groupLanguageController.text.trim(),
           minChildAge: minChildAge?.value,
           maxChildAge: maxChildAge?.value,
           allowedConditions: draftConditions.toList(),
           instructions: draftInstructions.toList(),
+          joinInstructions: draftInstructions.toList(),
         ),
       );
 
@@ -273,6 +334,9 @@ class CommunityController extends GetxController {
       groupDescriptionController.clear();
       groupConditionController.clear();
       groupInstructionController.clear();
+      groupCountryController.clear();
+      groupCityController.clear();
+      groupLanguageController.clear();
       draftConditions.clear();
       draftInstructions.clear();
       createGroupPrivate.value = false;
@@ -361,6 +425,16 @@ class CommunityController extends GetxController {
     return matches.first;
   }
 
+  bool isGroupOwner(GroupModel group) {
+    final userId = _authRepository.currentUser?.uid;
+    if (userId == null) return false;
+    return group.ownerId == userId;
+  }
+
+  List<GroupJoinRequestModel> pendingRequestsForGroup(String groupId) {
+    return ownerPendingRequests.where((request) => request.groupId == groupId).toList();
+  }
+
   Future<void> refreshPosts() async {
     await Future.delayed(const Duration(milliseconds: 500));
   }
@@ -406,6 +480,9 @@ class CommunityController extends GetxController {
     groupDescriptionController.dispose();
     groupConditionController.dispose();
     groupInstructionController.dispose();
+    groupCountryController.dispose();
+    groupCityController.dispose();
+    groupLanguageController.dispose();
     joinRequestNoteController.dispose();
     groupPostController.dispose();
     super.onClose();

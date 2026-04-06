@@ -415,10 +415,25 @@ class CommunityView extends GetView<CommunityController> {
                   onChanged: (v) => controller.groupLocationCode.value =
                       v.trim().isEmpty ? 'GLOBAL' : v.trim().toUpperCase(),
                   decoration: InputDecoration(
-                    labelText: 'Location code (e.g. US, UAE, GLOBAL)',
+                    labelText: 'Location code (fallback)',
                     hintText: controller.groupLocationCode.value,
                   ),
                 ),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: controller.groupCountryController,
+                decoration: const InputDecoration(labelText: 'Allowed country (optional)'),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: controller.groupCityController,
+                decoration: const InputDecoration(labelText: 'Allowed city (optional)'),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: controller.groupLanguageController,
+                decoration: const InputDecoration(labelText: 'Allowed language (optional)'),
               ),
               SizedBox(height: 8.h),
               Obx(
@@ -495,7 +510,7 @@ class CommunityView extends GetView<CommunityController> {
                   Expanded(
                     child: TextField(
                       controller: controller.groupInstructionController,
-                      decoration: const InputDecoration(labelText: 'Add instruction'),
+                      decoration: const InputDecoration(labelText: 'Join instruction'),
                     ),
                   ),
                   IconButton(
