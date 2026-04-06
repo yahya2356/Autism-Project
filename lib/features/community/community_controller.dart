@@ -178,7 +178,9 @@ class CommunityController extends GetxController {
       return 'Your child diagnosis does not match this group criteria.';
     }
     if ((group.allowedLanguage ?? '').trim().isNotEmpty) {
-      final userLanguage = (user.preferredTextSize ?? '').trim().toLowerCase();
+      final userLanguage = (user.preferredLanguage ?? user.preferredTextSize ?? '')
+          .trim()
+          .toLowerCase();
       final allowedLanguage = group.allowedLanguage!.trim().toLowerCase();
       if (userLanguage.isNotEmpty && userLanguage != allowedLanguage) {
         return 'This group requires language preference: ${group.allowedLanguage}.';

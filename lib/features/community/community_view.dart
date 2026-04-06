@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../data/models/group_model.dart';
 import '../../shared/widgets/c_text.dart';
 import '../../shared/widgets/custom_app_bar.dart';
 import 'community_controller.dart';
@@ -290,8 +291,8 @@ class CommunityView extends GetView<CommunityController> {
     });
   }
 
-  Widget _groupCard(dynamic group) {
-    final instructions = group.instructions as List<String>;
+  Widget _groupCard(GroupModel group) {
+    final instructions = group.instructions;
     final issue = controller.getEligibilityIssue(group);
     final isMember = controller.isMemberOfGroup(group.groupId);
     final request = controller.joinRequestForGroup(group.groupId);

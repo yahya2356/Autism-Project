@@ -330,7 +330,8 @@ class CommunityRepository {
       return false;
     }
 
-    final userLanguage = (user.preferredTextSize ?? '').toString().toLowerCase().trim();
+    final userLanguage =
+        (user.preferredLanguage ?? user.preferredTextSize ?? '').toString().toLowerCase().trim();
     if (languageRule.isNotEmpty && userLanguage.isNotEmpty && languageRule != userLanguage) {
       return false;
     }

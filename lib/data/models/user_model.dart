@@ -40,6 +40,7 @@ class UserModel {
   final double? crowdSensitivity;
   final double? lightSensitivity;
   final String? preferredTextSize;
+  final String? preferredLanguage;
   final String? primaryChallenge;
   final List<String>? safeZones;
   final List<String>? favorites;
@@ -70,6 +71,7 @@ class UserModel {
     this.crowdSensitivity,
     this.lightSensitivity,
     this.preferredTextSize,
+    this.preferredLanguage,
     this.primaryChallenge,
     this.safeZones,
     this.favorites,
@@ -98,6 +100,7 @@ class UserModel {
       crowdSensitivity: (map['crowdSensitivity'] as num?)?.toDouble(),
       lightSensitivity: (map['lightSensitivity'] as num?)?.toDouble(),
       preferredTextSize: map['preferredTextSize'],
+      preferredLanguage: map['preferredLanguage'],
       primaryChallenge: map['primaryChallenge'],
       password: map['password'],
       locationCode: map['locationCode'],
@@ -128,6 +131,7 @@ class UserModel {
       'crowdSensitivity': crowdSensitivity,
       'lightSensitivity': lightSensitivity,
       'preferredTextSize': preferredTextSize,
+      'preferredLanguage': preferredLanguage,
       'primaryChallenge': primaryChallenge,
       'safeZones': safeZones,
       'favorites': favorites,
@@ -155,6 +159,7 @@ class UserModel {
     double? crowdSensitivity,
     double? lightSensitivity,
     String? preferredTextSize,
+    String? preferredLanguage,
     String? primaryChallenge,
     List<String>? safeZones,
     List<String>? favorites,
@@ -181,6 +186,7 @@ class UserModel {
       crowdSensitivity: crowdSensitivity ?? this.crowdSensitivity,
       lightSensitivity: lightSensitivity ?? this.lightSensitivity,
       preferredTextSize: preferredTextSize ?? this.preferredTextSize,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       primaryChallenge: primaryChallenge ?? this.primaryChallenge,
       safeZones: safeZones ?? this.safeZones,
       favorites: favorites ?? this.favorites,
@@ -193,4 +199,3 @@ class UserModel {
     );
   }
 }
-
