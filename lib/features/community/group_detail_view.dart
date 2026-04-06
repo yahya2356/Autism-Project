@@ -93,7 +93,7 @@ class GroupDetailView extends GetView<CommunityController> {
                               style: const TextStyle(color: Colors.white),
                             ),
                           ),
-                      ),
+                  );
                 }
 
                 if (controller.selectedGroupPosts.isEmpty) {
