@@ -362,4 +362,17 @@ class CommunityRepository {
             .map((doc) => GroupPostModel.fromMap(doc.data(), doc.id))
             .toList());
   }
+
+  Future<List<GroupPostModel>> getRecentGroupPosts(String groupId) async {
+    final snapshot = await _firestore
+        .collection('groupPosts')
+        .where('groupId', isEqualTo: groupId)
+        .orderBy('timestamp', descending: true)
+        .limit(50)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => GroupPostModel.fromMap(doc.data(), doc.id))
+        .toList();
+  }
 }

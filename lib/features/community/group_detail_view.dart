@@ -66,6 +66,34 @@ class GroupDetailView extends GetView<CommunityController> {
                     ),
                   )
                 : const SizedBox.shrink()),
+            Obx(() {
+              if (!controller.isInSelectedGroup.value) return const SizedBox.shrink();
+              return Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: controller.isSummarizing.value ? null : controller.summarizeGroup,
+                    icon: controller.isSummarizing.value
+                        ? SizedBox(
+                            width: 16.w,
+                            height: 16.w,
+                            child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.auto_awesome),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    label: Text(
+                      controller.isSummarizing.value
+                          ? 'Generating summary...'
+                          : 'Summarize Group with AI',
+                    ),
+                  ),
+                ),
+              );
+            }),
             Expanded(
               child: Obx(() {
                 final canViewPosts =

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/utils/error_handler.dart';
+import '../../core/services/ai_service.dart';
 import '../../data/models/category_model.dart';
 import '../../data/models/group_join_request_model.dart';
 import '../../data/models/group_model.dart';
@@ -20,6 +21,7 @@ class CommunityController extends GetxController {
   final CategoryRepository _categoryRepository = Get.find<CategoryRepository>();
   final AuthRepository _authRepository = Get.find<AuthRepository>();
   final UserRepository _userRepository = Get.find<UserRepository>();
+  final AiService _aiService = Get.find<AiService>();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController groupNameController = TextEditingController();
@@ -41,6 +43,7 @@ class CommunityController extends GetxController {
   final Rxn<GroupModel> selectedGroup = Rxn<GroupModel>();
   final RxList<GroupPostModel> selectedGroupPosts = <GroupPostModel>[].obs;
   final RxBool isInSelectedGroup = false.obs;
+  final RxBool isSummarizing = false.obs;
   final TextEditingController groupPostController = TextEditingController();
   final TextEditingController groupCountryController = TextEditingController();
   final TextEditingController groupCityController = TextEditingController();
@@ -418,6 +421,59 @@ class CommunityController extends GetxController {
     } catch (e) {
       ErrorHandler.showErrorSnackBar(e);
       return false;
+    }
+  }
+
+  Future<void> summarizeGroup() async {
+    final group = selectedGroup.value;
+    if (group == null) return;
+    if (!isInSelectedGroup.value) {
+      ErrorHandler.showErrorSnackBar('Join this group to summarize discussions.');
+      return;
+    }
+
+    try {
+      isSummarizing.value = true;
+      final posts = await _communityRepository.getRecentGroupPosts(group.groupId);
+      if (posts.isEmpty) {
+        ErrorHandler.showErrorSnackBar('There are no posts to summarize yet.');
+        return;
+      }
+
+      final combinedText = posts
+          .map((p) => p.content.trim())
+          .where((content) => content.isNotEmpty)
+          .join('\n');
+
+      if (combinedText.isEmpty) {
+        ErrorHandler.showErrorSnackBar('There is no readable content to summarize.');
+        return;
+      }
+
+      final truncatedInput =
+          combinedText.length > 12000 ? combinedText.substring(0, 12000) : combinedText;
+      final summary = await _aiService.summarizeGroupPosts(truncatedInput);
+      if (summary.trim().isEmpty) {
+        ErrorHandler.showErrorSnackBar('Summary came back empty. Please try again.');
+        return;
+      }
+
+      Get.dialog(
+        AlertDialog(
+          title: const Text('Group Summary'),
+          content: SingleChildScrollView(child: Text(summary)),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ErrorHandler.showErrorSnackBar(e);
+    } finally {
+      isSummarizing.value = false;
     }
   }
 
