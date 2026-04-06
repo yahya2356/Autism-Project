@@ -8,6 +8,82 @@ import '../models/user_model.dart';
 class CommunityRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  Future<void> seedPublicGroupsIfEmpty(String ownerId) async {
+    final existing = await _firestore.collection('groups').limit(1).get();
+    if (existing.docs.isNotEmpty) return;
+
+    final now = DateTime.now();
+    final seeds = <Map<String, dynamic>>[
+      {
+        'groupName': 'General ASD Parent Support',
+        'description': 'A public support community for parents and caregivers.',
+        'category': 'General',
+        'isPrivate': false,
+        'requiresApproval': false,
+        'locationCode': 'GLOBAL',
+        'allowedCountry': null,
+        'allowedCity': null,
+        'allowedLanguage': null,
+        'minChildAge': 0,
+        'maxChildAge': 18,
+        'allowedConditions': <String>[],
+        'instructions': <String>['Be kind', 'Respect privacy'],
+        'joinInstructions': <String>['Introduce yourself', 'Share helpful tips'],
+      },
+      {
+        'groupName': 'Parents with Children Under 10',
+        'description': 'Public group for families with younger children.',
+        'category': 'Age Groups',
+        'isPrivate': false,
+        'requiresApproval': false,
+        'locationCode': 'GLOBAL',
+        'allowedCountry': null,
+        'allowedCity': null,
+        'allowedLanguage': null,
+        'minChildAge': 0,
+        'maxChildAge': 10,
+        'allowedConditions': <String>[],
+        'instructions': <String>['Keep discussions age-focused'],
+        'joinInstructions': <String>['Mention your child age range'],
+      },
+      {
+        'groupName': 'ASD Communication Strategies',
+        'description': 'Public group focused on speech and communication support.',
+        'category': 'Therapy',
+        'isPrivate': false,
+        'requiresApproval': false,
+        'locationCode': 'GLOBAL',
+        'allowedCountry': null,
+        'allowedCity': null,
+        'allowedLanguage': null,
+        'minChildAge': 0,
+        'maxChildAge': 18,
+        'allowedConditions': <String>['autism', 'asd'],
+        'instructions': <String>['Share verified resources when possible'],
+        'joinInstructions': <String>['Ask questions respectfully'],
+      },
+    ];
+
+    final batch = _firestore.batch();
+    for (final seed in seeds) {
+      final doc = _firestore.collection('groups').doc();
+      batch.set(doc, {
+        ...seed,
+        'ownerId': ownerId,
+        'createdBy': ownerId,
+        'createdAt': Timestamp.fromDate(now),
+        'totalMembers': 1,
+      });
+      batch.set(_firestore.collection('groupMembers').doc('${doc.id}_$ownerId'), {
+        'groupId': doc.id,
+        'userId': ownerId,
+        'role': 'owner',
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
   Future<void> createPost(PostModel post) async {
     await _firestore.collection('posts').doc(post.id).set(post.toMap());
   }

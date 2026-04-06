@@ -77,6 +77,7 @@ class CommunityController extends GetxController {
     final userId = _authRepository.currentUser?.uid;
     if (userId == null) return;
 
+    await _communityRepository.seedPublicGroupsIfEmpty(userId);
     currentUserProfile.value = await _userRepository.getUser(userId);
     myJoinRequests.bindStream(_communityRepository.getUserJoinRequests(userId));
     ownerPendingRequests.bindStream(_communityRepository.getPendingJoinRequestsForOwner(userId));
